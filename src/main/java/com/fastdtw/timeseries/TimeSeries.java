@@ -7,19 +7,17 @@
 
 package com.fastdtw.timeseries;
 
-import com.fastdtw.util.Arrays;
-
-import java.util.ArrayList;
-import java.util.StringTokenizer;
-import java.util.Vector;
-
 import java.io.BufferedReader;
-import java.io.FileReader;
+import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.io.FileOutputStream;
-import java.io.File;
+import java.util.ArrayList;
+import java.util.StringTokenizer;
+
+import com.fastdtw.util.Arrays;
 
 
 public class TimeSeries
@@ -30,18 +28,18 @@ public class TimeSeries
    private static final boolean DEFAULT_IS_LABELED = true;
 
 
-   public ArrayList labels;   // labels for each column
-   public ArrayList timeReadings;        // ArrayList of Double
-   public ArrayList tsArray;    // ArrayList of TimeSeriesPoint.. no time
+   public ArrayList<String> labels;   // labels for each column
+   public ArrayList<Double> timeReadings;        // ArrayList of Double
+   public ArrayList<TimeSeriesPoint> tsArray;    // ArrayList of TimeSeriesPoint.. no time
 
                                                                                      // TODO don't use defaults delimiter/1stColTime... determine if not specified
 
    // CONSTRUCTORS                                                                   // TODO method to peek at determined delimiter, 1st col time
    TimeSeries()
    {
-      labels = new ArrayList();                                                      // TODO isLabeled constuctor options?
-      timeReadings = new ArrayList();
-      tsArray = new ArrayList();
+      labels = new ArrayList<String>();                                                      // TODO isLabeled constuctor options?
+      timeReadings = new ArrayList<Double>();
+      tsArray = new ArrayList<TimeSeriesPoint>();
    }
 
 
@@ -56,9 +54,9 @@ public class TimeSeries
    // Copy Constructor
    public TimeSeries(TimeSeries origTS)
    {
-      labels = new ArrayList(origTS.labels);
-      timeReadings = new ArrayList(origTS.timeReadings);
-      tsArray = new ArrayList(origTS.tsArray);
+      labels = new ArrayList<String>(origTS.labels);
+      timeReadings = new ArrayList<Double>(origTS.timeReadings);
+      tsArray = new ArrayList<TimeSeriesPoint>(origTS.tsArray);
    }
 
 
@@ -172,7 +170,7 @@ public class TimeSeries
     //                                      "found: " + st.countTokens());
 
                // Read all currentLineValues in the current line
-               final ArrayList currentLineValues = new ArrayList();
+               final ArrayList<Double> currentLineValues = new ArrayList<Double>();
                int currentCol = 0;
                while (st.hasMoreTokens())
                {
@@ -285,7 +283,7 @@ public class TimeSeries
    }
 
 
-   public ArrayList getLabels()
+   public ArrayList<String> getLabels()
    {
       return labels;
    }
@@ -299,7 +297,7 @@ public class TimeSeries
    }
 
 
-   public void setLabels(ArrayList newLabels)
+   public void setLabels(ArrayList<String> newLabels)
    {
       labels.clear();
       for (int x=0; x<newLabels.size(); x++)
@@ -471,126 +469,6 @@ public class TimeSeries
    }  // end toString()
 
 
-
-   // Returns the first non-digit (and not a '.') character in a file under the
-   //    assumption that it is the delimiter in the file.
-   private static char determineDelimiter(String filePath)
-   {
-      final char DEFAULT_DELIMITER = ',';
-
-      try
-      {
-         final BufferedReader in = new BufferedReader(new FileReader(filePath));
-
-         String line = in.readLine().trim();   // read first line
-
-         if (!Character.isDigit(line.charAt(0)))  // go to 2nd line if 1st line appears to be labels
-            line = in.readLine();
-
-         in.close();
-
-         // Searches the 2nd line of the file until a non-number character is
-         //    found.  The delimiter is assumed to be that character.
-         //    numbers, minus signs, periods, and 'E' (exponent) are accepted
-         //    number characters.
-         for (int x=0; x<line.length(); x++)
-         {
-            if ( !Character.isDigit(line.charAt(x)) && (line.charAt(x)!='.') && (line.charAt(x)!='-') &&
-                 (Character.toUpperCase(line.charAt(x))!='E') )
-               return line.charAt(x);
-         }
-
-         // No delimiters were found, which means that there must be only one column
-         //    A delimiter does not need to be known to read this file.
-         return DEFAULT_DELIMITER;
-      }
-      catch (IOException e)
-      {
-         return DEFAULT_DELIMITER;
-      }
-   }  // end determineDelimiter(.)
-
-
-
-   private static double extractFirstNumber(String str)
-   {
-      StringBuffer numStr = new StringBuffer();
-
-      // Keep adding characters onto numStr until a non-number character
-      //    is reached.
-      for (int x = 0; x<str.length(); x++)
-      {
-         if ((Character.isDigit(str.charAt(x))) || (str.charAt(x) == '.') || (str.charAt(x) == '-') ||
-                  (Character.toUpperCase(str.charAt(x)) == 'E'))
-            numStr.append(str.charAt(x));
-         else
-            Double.parseDouble(numStr.toString());
-      }  // end for loop
-
-      return -1;
-   }
-
-
-
-   // Automatically determines if the first column in a file is time measurements.
-   //    It assumes that a column of time will have equal spacing between all
-   //    values.
-   private static boolean determineIsFirstColTime(String filePath)
-   {
-      final boolean DEFAULT_VALUE = false;
-
-      try
-      {
-         final BufferedReader in = new BufferedReader(new FileReader(filePath));
-
-         // This parameter is the percentage of flexibility that is permitted from
-         //    a perfectly even distribution of time values.  This function will
-         //    most likely not work if this is set to zero because of floating-
-         //    point math roundoff errors.
-         //    (a setting of '0.05' is '5 percent')
-         final double EQUALITY_FLEXIBILITY_PCT = 0.001;
-
-         final int NUM_OF_VALUES_TO_CMP = 100;   // $ of time values to look examine
-
-         final Vector possibleTimeValues = new Vector(NUM_OF_VALUES_TO_CMP);  // 'stores numOfValuesToCompare' values
-
-         // Read the first 'numOfValuesToCompare' possible time values from the file
-         //    and store them in 'possibleTimeValues'.
-         String line = in.readLine();
-
-         while ((possibleTimeValues.size()<NUM_OF_VALUES_TO_CMP) && ((line=in.readLine())!=null))
-            possibleTimeValues.add(new Double(extractFirstNumber(line)));
-
-         if (possibleTimeValues.size()<=1)
-            return DEFAULT_VALUE;
-
-         // See if there is equal spacing (with a flexibility of
-         //    'equalityFlexibilityFactor') between all values in              // TODO TimeSeries is now messy...in need of design
-         //    'possibleTimeValues'.
-         if ((possibleTimeValues.size()>1) && possibleTimeValues.get(1).equals(possibleTimeValues.get(0)))
-            return DEFAULT_VALUE;   // special case needed for very flat data
-
-
-         final double expectedDiff = ((Double)possibleTimeValues.get(1)).doubleValue() -
-                                     ((Double)possibleTimeValues.get(0)).doubleValue();
-         final double flexibility = expectedDiff * EQUALITY_FLEXIBILITY_PCT;
-         for (int x=1; x<possibleTimeValues.size(); x++)
-         {
-            if (Math.abs( ((Double)possibleTimeValues.get(x)).doubleValue() -
-                          ((Double)possibleTimeValues.get(x-1)).doubleValue() - expectedDiff)
-                > Math.abs(flexibility))
-            {
-               return false;
-            }
-         }   // end for loop
-
-         return true;
-      }
-      catch (IOException e)
-      {
-         return DEFAULT_VALUE;
-      }
-   }  // end determineIsFirstColTime(.)
 
 
    protected void setMaxCapacity(int capacity)
